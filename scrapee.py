@@ -7,20 +7,23 @@ from selenium.common.exceptions import TimeoutException
 from bs4 import BeautifulSoup
 import csv
 
-
 def setup_driver():
-    chrome_driver_path = r"C:\Users\Another\.wdm\drivers\chromedriver\win64\131.0.6778.264\chromedriver-win32\chromedriver.exe"
+    # Use ChromeDriver path from the environment (set in GitHub workflow)
+    chrome_driver_path = os.getenv("CHROME_DRIVER_PATH", "chromedriver")
+    
     options = Options()
+    options.add_argument("--headless")  # Enable headless mode for GitHub Actions
     options.add_argument("--disable-blink-features=AutomationControlled")
     options.add_argument("--disable-extensions")
     options.add_argument("--disable-infobars")
     options.add_argument("--incognito")
     options.add_argument("--start-maximized")
+    options.add_argument("--no-sandbox")  # Required for running in some CI environments
+    options.add_argument("--disable-dev-shm-usage")  # Prevents resource issues
     service = Service(chrome_driver_path)
     driver = webdriver.Chrome(service=service, options=options)
     driver.set_page_load_timeout(120)  # Set timeout to 120 seconds
     return driver
-
 
 def fetch_page(driver, url, manual_unlock=False):
     """
@@ -152,11 +155,9 @@ def extract_result_count(driver, subcategory_url):
     print(f"  Results Found: {result_count}")
     return result_count
 
-
 def main():
     base_url = "https://www.mycommunitydirectory.com.au/Victoria/"
     driver = setup_driver()
-
     try:
         # Open CSV file for writing
         with open("categories_and_subcategories_results2.csv", "w", newline="", encoding="utf-8") as f:
@@ -165,10 +166,8 @@ def main():
 
             # Extract categories and subcategories
             extract_councils_and_categories(driver, base_url, csv_writer)
-
     finally:
         driver.quit()
-
 
 if __name__ == "__main__":
     main()
