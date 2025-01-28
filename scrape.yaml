@@ -18,3 +18,9 @@
     BASE_URL: ${{ secrets.BASE_URL }}
   run: |
     python script.py
+
+- name: Upload Results as Artifact
+  uses: actions/upload-artifact@v3
+  with:
+    name: scraped-results
+    path: categories_and_subcategories_results.csv
