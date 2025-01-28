@@ -1,4 +1,4 @@
-name: Run Selenium Scraper
+name: Run Scraper
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
 
 jobs:
   run-scraper:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
 
     steps:
       - name: Checkout Repository
@@ -26,16 +26,18 @@ jobs:
 
       - name: Install Chrome and ChromeDriver
         run: |
-          sudo apt-get update
-          sudo apt-get install -y google-chrome-stable
-          CHROME_DRIVER_VERSION=$(curl -sS chromedriver.storage.googleapis.com/LATEST_RELEASE)
-          wget -N https://chromedriver.storage.googleapis.com/$CHROME_DRIVER_VERSION/chromedriver_linux64.zip
-          unzip chromedriver_linux64.zip
-          sudo mv chromedriver /usr/local/bin/
+          choco install googlechrome --no-progress --yes
+          choco install chromedriver --no-progress --yes
+          setx PATH "%PATH%;C:\ProgramData\chocolatey\bin"
+
+      - name: Verify Chrome and ChromeDriver Installation
+        run: |
+          google-chrome --version
+          chromedriver --version
 
       - name: Run Scraper
         env:
-          CHROME_DRIVER_PATH: "/usr/local/bin/chromedriver"
+          CHROME_DRIVER_PATH: "C:\ProgramData\chocolatey\bin\chromedriver.exe"
         run: |
           python script.py
 
