@@ -1,9 +1,5 @@
 import requests
-import base64
-import os
-import json
 import time
-import re
 import random
 import gspread
 from bs4 import BeautifulSoup
