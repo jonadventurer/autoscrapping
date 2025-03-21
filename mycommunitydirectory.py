@@ -30,7 +30,6 @@ client = gspread.authorize(creds)
 sheet = client.open(OUTPUT_NAME).worksheet(OUTPUTSHEET_NAME)
 skipped_sheet = client.open(OUTPUT_NAME).worksheet(SKIPPED_SHEET_NAME)
 
-
 def append_to_sheet(data):
     sheet.append_row(data)
     
