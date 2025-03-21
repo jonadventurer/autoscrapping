@@ -2,7 +2,7 @@ name: Run MyCommunity Scraper
 
 on:
   schedule:
-    - cron: '03 10 * * *'  # Runs daily at 2 AM UTC
+    - cron: '0 2 * * *'  # Runs daily at 2 AM UTC
   workflow_dispatch:  # Allows manual execution
 
 jobs:
