@@ -26,8 +26,3 @@ jobs:
         run: |
           echo "$GOOGLE_SHEET_CREDENTIALS" > mycommunitydirectorycredential.json
           python mycommunitydirectory.py
-
-        uses: actions/upload-artifact@v3
-        with:
-          name: scraped-results
-          path: categories_and_subcategories_results.csv
