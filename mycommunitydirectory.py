@@ -11,30 +11,34 @@ from urllib.parse import urljoin
 # Setting the council name
 COUNCIL_NAME = "Alpine Council"
 
-# FireCrawl API key
+# FireCrawl API key and configuration, HEADERS contains authorization details and specifies the content type for API requests.
 API_KEY = "fc-6483a601863c44a9b03c0d9821dd8cc3"
 FIRECRAWL_URL = "https://api.firecrawl.dev/v1/scrape"
 HEADERS = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
 
 # Google Sheets configuration
-SHEET_NAME = "VICTORIA Australian Council [MyCommunity] Scrapping - Tracking"
-TRACKING_SHEET = "Tracking Code (0 results)"
-OUTPUT_NAME = "My Community Scrapping (Victoria) state - By Council Tabs"
-OUTPUTSHEET_NAME = f"{COUNCIL_NAME}"
-SKIPPED_SHEET_NAME = f"Skipped Link ({COUNCIL_NAME})"
-BASE_URL = "https://www.mycommunitydirectory.com.au"
+SHEET_NAME = "VICTORIA Australian Council [MyCommunity] Scrapping - Tracking"  # SHEET_NAME refers to the main Google Sheet.
+TRACKING_SHEET = "Tracking Code (0 results)"  # TRACKING_SHEET is the specific worksheet that contains URLs to be scraped.
+OUTPUT_NAME = "My Community Scrapping (Victoria) state - By Council Tabs"  # OUTPUT_NAME is the Google Sheet where the scraped data will be stored.
+OUTPUTSHEET_NAME = f"{COUNCIL_NAME}"  # OUTPUTSHEET_NAME is dynamically set based on the council name to store data in the respective tab.
+SKIPPED_SHEET_NAME = f"Skipped Link ({COUNCIL_NAME})"  # SKIPPED_SHEET_NAME is used to store links that couldn't be scraped successfully.
+BASE_URL = "https://www.mycommunitydirectory.com.au"  # Base URL for constructing absolute links
 
 # Authenticate with Google Sheets
-scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-creds = ServiceAccountCredentials.from_json_keyfile_name("mycommunitydirectorycredential.json", scope)
-client = gspread.authorize(creds)
-sheet = client.open(OUTPUT_NAME).worksheet(OUTPUTSHEET_NAME)
-skipped_sheet = client.open(OUTPUT_NAME).worksheet(SKIPPED_SHEET_NAME)
+scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]  # `scope` defines the necessary permissions for Google Sheets and Google Drive.
+creds = ServiceAccountCredentials.from_json_keyfile_name("mycommunitydirectorycredential.json", scope)  # `creds` loads the service account credentials from a JSON file.
+client = gspread.authorize(creds)  # `client` establishes the connection to Google Sheets using the credentials.
+
+# Open the output sheet for storing scraped data.
+sheet = client.open(OUTPUT_NAME).worksheet(OUTPUTSHEET_NAME)  # Open the output sheet for storing scraped data.
+skipped_sheet = client.open(OUTPUT_NAME).worksheet(SKIPPED_SHEET_NAME)  # Open the skipped entries sheet for logging unsuccessful scraping attempts.
 
 def append_to_sheet(data):
+    # Appends a row of data to the Google Sheets output sheet.
     sheet.append_row(data)
     
 def append_to_skipped_sheet(data):
+    # Appends a row of data to the skipped sheet for logging skipped entries.
     skipped_sheet.append_row(data)
     
 def get_last_scraped_entry():
@@ -47,15 +51,16 @@ def get_last_scraped_entry():
         return last_subcategory_url, last_company_name
     return None, None
 
-def get_subcategory_urls():    
-    sheet = client.open(SHEET_NAME).worksheet(TRACKING_SHEET)
-    data = sheet.get_all_values()
+def get_subcategory_urls():
+    # Fetches all subcategory URLs from the tracking sheet, filtering by the council name.
+    sheet = client.open(SHEET_NAME).worksheet(TRACKING_SHEET)  # Open Google Sheet and select worksheet
+    data = sheet.get_all_values()  # Fetch all data from the sheet
    
     subcategory_urls = []
     for row in data[1:]:  # Skip header
-        council_name = row[0]
-        url = row[5]
-        result = row[6]
+        council_name = row[0]  # Extract the council name
+        url = row[5]  # Extract the subcategory URL
+        result = row[6]  # Extract the result column value
         
         if url and result != "0" and council_name == COUNCIL_NAME:  # Skip if result is 0
             subcategory_urls.append(url)
@@ -64,56 +69,59 @@ def get_subcategory_urls():
 
 def firecrawl_scrape(url, formats=["html"]):
     # Scrapes a URL using FireCrawl with retry logic.
-    max_retries = 3
+    max_retries = 3  # Maximum number of retry attempts
     for attempt in range(max_retries):
-        start_time = time.time()
-        payload = {"url": url, "formats": formats}
-        response = requests.post(FIRECRAWL_URL, json=payload, headers=HEADERS)
-        end_time = time.time()
-        
+        start_time = time.time()  # Record the start time of the request
+        payload = {"url": url, "formats": formats}  # Prepare API request payload
+        response = requests.post(FIRECRAWL_URL, json=payload, headers=HEADERS)  # Send request to FireCrawl
+        end_time = time.time()  # Record the end time of the request
+
+        # If response is successful and contains "success" field, return the data
         if response.status_code == 200:
             data = response.json()
             if data.get("success"):
                 return data  # Return scraped data
 
-        wait_time = random.uniform(10, 20)  # Increased wait time
+        # If unsuccessful, wait for a random time before retrying
+        wait_time = random.uniform(10, 20)  # Random wait between 10-20 seconds
         time.sleep(wait_time)
-
-    print(f"❌ FireCrawl failed after {max_retries} attempts for {url}")
-    return None  # Return None if all retries fail
+    return "N/A" # Return "N/A" if all retries fail
 
 def get_timestamp():
     # Returns the current timestamp in YYYY-MM-DD HH:MM:SS format.
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 def extract_category_info(soup):
-    categories = soup.select("span[itemprop='title']")
+    # Extracts category and subcategory information from the page.
+    categories = soup.select("span[itemprop='title']")  # Select all breadcrumb category elements
     if len(categories) >= 4:
         return {
-            "category_name": categories[3].get_text(strip=True),
-            "subcategory_name": categories[4].get_text(strip=True) if len(categories) > 4 else "N/A",
-            "services": f"{categories[3].get_text(strip=True)}, {categories[4].get_text(strip=True)}" if len(categories) > 4 else categories[3].get_text(strip=True)
+            "category_name": categories[3].get_text(strip=True),  # Extract category name
+            "subcategory_name": categories[4].get_text(strip=True) if len(categories) > 4 else "N/A",  # Extract subcategory name if available
+            "services": f"{categories[3].get_text(strip=True)}, {categories[4].get_text(strip=True)}" if len(categories) > 4 else categories[3].get_text(strip=True)  # Combine category and subcategory
         }
+    # Return default "N/A" values if category information is missing
     return {"category_name": "N/A", "subcategory_name": "N/A", "services": "N/A"}
 
 def extract_company_info(soup):
-    results = soup.select("#results > li")
+    # Extracts company details like name, NDIS provider status, and service area.
+    results = soup.select("#results > li")# Select all list items within the #results selector
     company_data = []
     
     for result in results:
-        company_name = result.select_one("div.info h4 a.orange.nofollow")
-        ndis_provider = "Yes" if result.select_one("div.info > a > img") else "No"
-        service_area = result.select_one("div.contact-details > div:nth-child(1) > p.icon.icon-map15")
+        company_name = result.select_one("div.info h4 a.orange.nofollow")  # Extract the company name
+        ndis_provider = "Yes" if result.select_one("div.info > a > img") else "No"  # Check if the company is an NDIS provider
+        service_area = result.select_one("div.contact-details > div:nth-child(1) > p.icon.icon-map15")  # Extract the service area
         
         company_data.append({
-            "company_name": company_name.get_text(strip=True) if company_name else "N/A",
-            "ndis_provider": ndis_provider,
-            "service_area": f"Located in {service_area.get_text(strip=True)}" if service_area else "N/A"
+            "company_name": company_name.get_text(strip=True) if company_name else "N/A",  # Extract company name
+            "ndis_provider": ndis_provider,  # Store "Yes" or "No" based on NDIS provider presence
+            "service_area": f"Located in {service_area.get_text(strip=True)}" if service_area else "N/A"  # Extract service area
         })
-    return company_data
+    return company_data  # Return the list of extracted company details
 
 def extract_links(soup, subcategory_urls, max_wait=200, check_interval=60):
-    # Wait until links is obtained
+    # Extracts business profile links from the subcategory page.
     start_time = time.time()
     links = []
 
@@ -134,8 +142,9 @@ def extract_main_state(url):
     return "State not found"
 
 def extract_details_from_link(url):
-    data = firecrawl_scrape(url, ["html"])
-    if not data or not data.get("success"):
+    # Extracts company details from the business profile page.
+    data = firecrawl_scrape(url, ["html"])  # Scrape the webpage using FireCrawl
+    if not data or not data.get("success"):  # If scraping fails or response is invalid, return default "N/A" values
         return {
             "location": "N/A",
             "suburb": "N/A",
@@ -148,18 +157,26 @@ def extract_details_from_link(url):
             "longitude": "N/A",
             "about_us": "N/A"
         }
-    
+    # Parse the scraped HTML content
     soup = BeautifulSoup(data["data"].get("html", ""), "html.parser")
+    # Extract the business location from the contact details section
     location = soup.select_one(".company-info .contact-info p.icon-map15 a, .company-info .contact-info p.icon-map15 span")
     location_text = location.get_text(strip=True) if location else "N/A"
+    # Extract phone number (if available)
     phone = soup.select_one("a[href^='tel:']")
+    # Extract outlet ID from the URL (assuming it is the second last part of the URL and is numeric)
     outlet_id = url.split("/")[-2] if url.rstrip('/').split('/')[-2].isdigit() else "N/A"
+    # Extract latitude and longitude from map data (if available)
     lat_long_match = re.search(r"center=(-?\d+\.\d+),(-?\d+\.\d+)", str(soup))
     lat, long = (lat_long_match.groups() if lat_long_match else ("N/A", "N/A"))
+    # Extract company description (if available)
     about_us = "\n".join([p.get_text(strip=True) for p in soup.select("div.description p")])
+    # Extract suburb, state, and postal code from location text
     address_details = extract_suburb_state_postal(location_text)
+    # Extract website URL (if available)
     website_url = extract_website_url(soup)
 
+    # Return all extracted details as a dictionary
     return {
         "location": location_text,
         "suburb": address_details["suburb"],
@@ -175,7 +192,8 @@ def extract_details_from_link(url):
 
 def extract_suburb_state_postal(location_text):
     # Ensure we have at least three words for suburb, state, and postal code
-    words = location_text.split()    
+    words = location_text.split()  # Split location text into words
+    # Ensure we have at least 3 words for suburb, state, and postal code
     if len(words) >= 3:
         return {
             "suburb": words[-3],  # Third last word
@@ -208,24 +226,27 @@ def get_existing_entries():
 existing_entries = get_existing_entries()
 
 def scrape_subcategory(url):
-    main_data = firecrawl_scrape(url, ["html"])
+    # Scrapes a subcategory page, extracts company details, and updates Google Sheets.
+    main_data = firecrawl_scrape(url, ["html"])  # Scrape the subcategory page using FireCrawl
+    # Check if the scrape was successful, otherwise return
     if not main_data or not main_data.get("success") or "html" not in main_data["data"]:
         return
     
-    wait_time = random.uniform(30, 50)  # Random wait between 10-20 seconds
+    wait_time = random.uniform(30, 50)  # Random wait between 30-50seconds
     time.sleep(wait_time)
     
-    soup = BeautifulSoup(main_data["data"].get("html", ""), "html.parser")
-    links = extract_links(soup, url)
-    category_info = extract_category_info(soup)
-    companies = extract_company_info(soup)
-    main_state = extract_main_state(url)
+    soup = BeautifulSoup(main_data["data"].get("html", ""), "html.parser")  # Parse the scraped HTML content
+    # Extract data from the page
+    links = extract_links(soup, url)  # Extracts service links from the page
+    category_info = extract_category_info(soup)  # Extracts category metadata
+    companies = extract_company_info(soup)  # Extracts company information
+    main_state = extract_main_state(url)  # Extracts state information from URL
     
-    # ✅ Fetch existing data once to optimize performance
+    # Fetch existing data once to optimize performance
     existing_entries = sheet.get_all_values()
     existing_companies = {(row[4], row[8]): row[3] for row in existing_entries}  # Extract (company_name, outlet_id) → services
     
-    # ✅ Fetch existing skipped entries to avoid duplicates
+    # Fetch existing skipped entries to avoid duplicates
     skipped_entries = skipped_sheet.get_all_values()
     existing_skipped_data = {
         (row[2], row[3], row[4], row[6]) for row in skipped_entries[1:]
@@ -238,29 +259,31 @@ def scrape_subcategory(url):
         for attempt in range(max_retries):
             details = extract_details_from_link(link)
             if details:
-                break  # Success, stop retrying)
+                break  # Stop retrying if successful
             time.sleep(random.uniform(5, 10))  # Wait before retrying
         
         if not details:
             continue  # Skip this entry and move to the next one
 
-        # 🚩 Check for existing entry before saving
+        # Check for existing entry before saving
         existing_services = existing_companies.get((company["company_name"], details["outlet_id"]))
         new_services = category_info["services"]
 
         if existing_services:
+            # Update existing entry with new services
             existing_services_list = existing_services.split(", ")
             new_services_list = new_services.split(", ")
             updated_services_list = list(set(existing_services_list + new_services_list))
             updated_services = ", ".join(updated_services_list)
             
             existing_companies[(company["company_name"], details["outlet_id"])] = updated_services
-            
+
+            # Find and update the existing entry in Google Sheets
             cell = sheet.find(company["company_name"], in_column=5)
             if cell:
                 sheet.update_cell(cell.row, 4, updated_services)
                 
-            # ✅ Check if already in SKIPPED_SHEET before saving**
+            # Check if already in SKIPPED_SHEET before saving
             skipped_data_entry = (
                 category_info["category_name"],
                 category_info["subcategory_name"],
@@ -278,11 +301,11 @@ def scrape_subcategory(url):
                     details["outlet_id"],
                     details["location"]
                 ]
-                append_to_skipped_sheet(skipped_data)
+                append_to_skipped_sheet(skipped_data)  # Save skipped entry
             else:
                 continue  # Skip saving duplicate data
         else:
-            # ✅ New entry, append to Google Sheets
+            # New entry, append to Google Sheets
             row_data = [
                 datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 main_state,
@@ -304,7 +327,7 @@ def scrape_subcategory(url):
                 details["phone"],
                 url
             ]
-            append_to_sheet(row_data)
+            append_to_sheet(row_data)  # Save new entry
     return companies  # Return extracted company data
 
 # Fetch all subcategory URLs
