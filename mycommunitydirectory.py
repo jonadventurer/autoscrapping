@@ -178,7 +178,7 @@ def extract_suburb_state_postal(location_text):
 def extract_website_url(soup):
     # Extracts the website URL from the given HTML using BeautifulSoup and combines it with BASE_URL.
     element = soup.select_one(".company-info .contact-info p.icon.icon-website a")
-    return urljoin(BASE_URL, element['href']) if element else None
+    return urljoin(BASE_URL, element['href']) if element else "N/A"
     
 def get_existing_entries():
     # Fetch all existing company names and outlet IDs from the Google Sheet. Returns a dictionary with (company_name, outlet_id) as keys and their services as values.
