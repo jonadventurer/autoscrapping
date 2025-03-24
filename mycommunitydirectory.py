@@ -271,7 +271,7 @@ def scrape_subcategory(url):
                 ]
                 append_to_skipped_sheet(skipped_data)
             else:
-            continue  # Skip saving duplicate data
+                continue  # Skip saving duplicate data
         else:
             # ✅ New entry, append to Google Sheets
             row_data = [
