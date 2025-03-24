@@ -31,7 +31,7 @@ sheet = client.open(OUTPUT_NAME).worksheet(OUTPUTSHEET_NAME)
 skipped_sheet = client.open(OUTPUT_NAME).worksheet(SKIPPED_SHEET_NAME)
 
 # Try accessing a sheet
-sheet = client.open("Your Google Sheet Name").sheet1
+sheet = client.open(TRACKING_SHEET).sheet1
 print(sheet.row_values(1))  # Print first row to test access
 
 def append_to_sheet(data):
