@@ -1,4 +1,4 @@
-name: Run MyCommunity Scraper
+name: Run MyCommunity Scrape
 
 on:
   schedule:
@@ -20,7 +20,7 @@ jobs:
       - name: Install Dependencies
         run: pip install requests beautifulsoup4 gspread oauth2client
 
-      - name: Run Scraper
+      - name: Run Scrape
         env:
           MYCOMMUNITYDIRECTORYCREDENTIAL: ${{ secrets.MYCOMMUNITYDIRECTORYCREDENTIAL }}
         run: |
