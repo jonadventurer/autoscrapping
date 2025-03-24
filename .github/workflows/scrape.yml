@@ -1,8 +1,8 @@
-name: Run MyCommunity Scrape
+name: Run MyCommunity Scraper
 
 on:
   schedule:
-    - cron: '27 7 * * *'  # Runs daily at 7:27 AM UTC
+    - cron: '0 2 * * *'  # Runs daily at 2 AM UTC
   workflow_dispatch:  # Allows manual execution
 
 jobs:
@@ -18,21 +18,12 @@ jobs:
           python-version: '3.10'
 
       - name: Install Dependencies
-        run: |
-          pip install requests beautifulsoup4 gspread google-auth google-auth-oauthlib google-auth-httplib2
-
-      - name: Decode Google Service Account Key
-        env:
-          MYCOMMUNITYDIRECTORYCREDENTIAL: ${{ secrets.MYCOMMUNITYDIRECTORYCREDENTIAL }}
-        run: |
-          echo "$MYCOMMUNITYDIRECTORYCREDENTIAL" | base64 --decode > mycommunitydirectorycredential.json
-
-      - name: Debug Credential File
-        run: |
-          cat mycommunitydirectorycredential.json | jq '.'  # Ensures valid JSON formatting
+        run: pip install requests beautifulsoup4 gspread google-auth google-auth-oauthlib google-auth-httplib2
 
       - name: Run Scrape
         env:
-          GOOGLE_APPLICATION_CREDENTIALS: mycommunitydirectorycredential.json
+          MYCOMMUNITYDIRECTORYCREDENTIAL: ${{ secrets.MYCOMMUNITYDIRECTORYCREDENTIAL }}
         run: |
+          echo "$MYCOMMUNITYDIRECTORYCREDENTIAL" > mycommunitydirectorycredential.json
           python mycommunitydirectory.py
+
