@@ -20,8 +20,8 @@ HEADERS = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/js
 SHEET_NAME = "VICTORIA Australian Council [MyCommunity] Scrapping - Tracking"
 TRACKING_SHEET = "Tracking Code (0 results)"
 OUTPUT_NAME = "My Community Scrapping (Victoria) state - By Council Tabs"
-OUTPUTSHEET_NAME = f"{COUNCIL_NAME} Testing"
-SKIPPED_SHEET_NAME = f"Skipped Link ({COUNCIL_NAME}) Testing"
+OUTPUTSHEET_NAME = f"{COUNCIL_NAME}"
+SKIPPED_SHEET_NAME = f"Skipped Link ({COUNCIL_NAME})"
 BASE_URL = "https://www.mycommunitydirectory.com.au"
 
 # Authenticate with Google Sheets
