@@ -1,53 +1,28 @@
-name: Run Scraper
+name: Run MyCommunity Scraper
 
 on:
-  push:
-    branches:
-      - main
-  workflow_dispatch:
+  schedule:
+    - cron: '11 4 * * *'  # Runs daily at 2 AM UTC
+  workflow_dispatch:  # Allows manual execution
 
 jobs:
-  run-scraper:
-    runs-on: windows-latest
-
+  scrape:
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Set up Python
+      - name: Set Up Python
         uses: actions/setup-python@v4
         with:
-          python-version: 3.10  # Ensure a valid Python version (e.g., 3.10 or 3.11)
+          python-version: '3.10'
 
       - name: Install Dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install selenium beautifulsoup4 undetected-chromedriver
-
-      - name: Install Chrome and ChromeDriver
-        run: |
-          choco install googlechrome --no-progress --yes
-          choco install chromedriver --no-progress --yes
-          setx PATH "%PATH%;C:\ProgramData\chocolatey\bin"
-
-      - name: Verify Chrome and ChromeDriver Installation
-        run: |
-          google-chrome --version
-          chromedriver --version
+        run: pip install requests beautifulsoup4 gspread oauth2client
 
       - name: Run Scraper
         env:
-          CHROME_DRIVER_PATH: "C:\ProgramData\chocolatey\bin\chromedriver.exe"
+          MYCOMMUNITYDIRECTORYCREDENTIAL: ${{ secrets.MYCOMMUNITYDIRECTORYCREDENTIAL }}
         run: |
-          python script.py
-
-      - name: Upload Results as Artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: scraped-results
-          path: categories_and_subcategories_results.csv
-
-        uses: actions/upload-artifact@v3
-        with:
-          name: scraped-results
-          path: categories_and_subcategories_results.csv
+          echo "$MYCOMMUNITYDIRECTORYCREDENTIAL" > mycommunitydirectorycredential.json
+          python mycommunitydirectory.py
