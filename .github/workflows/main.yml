@@ -18,11 +18,10 @@ jobs:
         with:
           python-version: '3.10'  # Specify the Python version you need
 
-      - name: Install dependencies
+      - name: Install Dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install requests beautifulsoup4 gspread oauth2client  # Install required packages
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          if (Test-Path requirements.txt) { pip install -r requirements.txt }
+        shell: pwsh
 
       - name: Execute script
         run: python mycommunitydirectory.py
