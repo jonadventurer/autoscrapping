@@ -1,0 +1,28 @@
+name: Run MyCommunity Scraper
+
+on:
+  schedule:
+    - cron: '0 2 * * *'  # Runs daily at 2 AM UTC
+  workflow_dispatch:  # Allows manual execution
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Set Up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install Dependencies
+        run: pip install requests beautifulsoup4 gspread google-auth google-auth-oauthlib google-auth-httplib2
+
+      - name: Run Scrape
+        env:
+          MYCOMMUNITYDIRECTORYCREDENTIAL: ${{ secrets.MYCOMMUNITYDIRECTORYCREDENTIAL }}
+        run: |
+          echo "$MYCOMMUNITYDIRECTORYCREDENTIAL" > mycommunitydirectorycredential.json
+          python mycommunitydirectory.py
