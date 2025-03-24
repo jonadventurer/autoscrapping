@@ -73,11 +73,9 @@ def firecrawl_scrape(url, formats=["html"]):
         if response.status_code == 200:
             data = response.json()
             if data.get("success"):
-                print(f"☑️  FireCrawl successful for {url} (Response Time: {end_time - start_time:.2f}s)")
                 return data  # Return scraped data
 
         wait_time = random.uniform(10, 20)  # Increased wait time
-        print(f"🔄 Retry {attempt + 1}/{max_retries} for {url} in {wait_time:.2f} seconds...")
         time.sleep(wait_time)
 
     print(f"❌ FireCrawl failed after {max_retries} attempts for {url}")
@@ -121,14 +119,11 @@ def extract_links(soup, subcategory_urls, max_wait=200, check_interval=60):
     while time.time() - start_time < max_wait:
         links = soup.select("#results li div.info h4 a")
         if links:
-            print(f"✅ Extracted {len(links)} links from {subcategory_urls}.")
             return [link.get("href") for link in links if link.get("href")]
 
         wait_time = random.uniform(check_interval, check_interval + 5)  # Randomized wait time
-        print(f"⏳ No links found yet. Waiting {wait_time:.2f} seconds retrying {subcategory_urls}...")
         time.sleep(wait_time)  # Wait before rechecking
     
-    print(f"❌ No links found after waiting {max_wait} seconds. Moving on.")
     return []  # Return empty list if no links found
 
 def extract_main_state(url):
@@ -206,11 +201,9 @@ existing_entries = get_existing_entries()
 def scrape_subcategory(url):
     main_data = firecrawl_scrape(url, ["html"])
     if not main_data or not main_data.get("success") or "html" not in main_data["data"]:
-        print(f"❌ Failed to scrape: {url} - No HTML data")
         return
     
     wait_time = random.uniform(30, 50)  # Random wait between 10-20 seconds
-    print(f"⏳ Waiting (1) {wait_time:.2f} seconds before extracting links from {url}.")
     time.sleep(wait_time)
     
     soup = BeautifulSoup(main_data["data"].get("html", ""), "html.parser")
@@ -231,18 +224,15 @@ def scrape_subcategory(url):
 
     for company, link in zip(companies, links):
         # Retry extracting details up to 3 times if it fails
-        print(f"🔹 Scraping details for: {company['company_name']}")
         details = None
         max_retries = 3
         for attempt in range(max_retries):
             details = extract_details_from_link(link)
             if details:
-                break  # Success, stop retrying
-            print(f"🔄 Retry {attempt + 1}/{max_retries} for {company['company_name']} ({link})...")
+                break  # Success, stop retrying)
             time.sleep(random.uniform(5, 10))  # Wait before retrying
         
         if not details:
-            print(f"❌ Failed to extract details after {max_retries} attempts for {company['company_name']}. Skipping.")
             continue  # Skip this entry and move to the next one
 
         # 🚩 Check for existing entry before saving
@@ -256,7 +246,6 @@ def scrape_subcategory(url):
             updated_services = ", ".join(updated_services_list)
             
             existing_companies[(company["company_name"], details["outlet_id"])] = updated_services
-            print(f"🔄 Updating services for {company['company_name']} Outlet: ({details['outlet_id']}) {updated_services}")
             
             cell = sheet.find(company["company_name"], in_column=5)
             if cell:
@@ -281,9 +270,7 @@ def scrape_subcategory(url):
                     details["location"]
                 ]
                 append_to_skipped_sheet(skipped_data)
-                print(f"✅ Skipped Data of {company['company_name']} saved into '{SKIPPED_SHEET_NAME}'.")
             else:
-                print(f"⚠️  Skipped Data already exists for {company['company_name']} - Not saving duplicate.")
             continue  # Skip saving duplicate data
         else:
             # ✅ New entry, append to Google Sheets
@@ -309,7 +296,6 @@ def scrape_subcategory(url):
                 url
             ]
             append_to_sheet(row_data)
-            print(f"✅ Data saved for {company['company_name']} ({details['outlet_id']}) {link}.")
     return companies  # Return extracted company data
 
 # Fetch all subcategory URLs
