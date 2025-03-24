@@ -6,12 +6,6 @@ from bs4 import BeautifulSoup
 from datetime import datetime
 from oauth2client.service_account import ServiceAccountCredentials
 from urllib.parse import urljoin
-import json
-
-with open("mycommunitydirectorycredential.json", "r") as f:
-    creds = json.load(f)
-
-print("Loaded Credentials:", creds.get("client_email", "Missing client_email"))
 
 # Setting the council name
 COUNCIL_NAME = "Alpine Council"
