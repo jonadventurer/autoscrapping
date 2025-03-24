@@ -124,7 +124,6 @@ def extract_links(soup, subcategory_urls, max_wait=200, check_interval=60):
 
         wait_time = random.uniform(check_interval, check_interval + 5)  # Randomized wait time
         time.sleep(wait_time)  # Wait before rechecking
-    
     return []  # Return empty list if no links found
 
 def extract_main_state(url):
@@ -137,10 +136,20 @@ def extract_main_state(url):
 def extract_details_from_link(url):
     data = firecrawl_scrape(url, ["html"])
     if not data or not data.get("success"):
-        return None
+        return {
+            "location": "N/A",
+            "suburb": "N/A",
+            "state": "N/A",
+            "postal_code": "N/A",
+            "phone": "N/A",
+            "website": "N/A",
+            "outlet_id": "N/A",
+            "latitude": "N/A",
+            "longitude": "N/A",
+            "about_us": "N/A"
+        }
     
     soup = BeautifulSoup(data["data"].get("html", ""), "html.parser")
-    
     location = soup.select_one(".company-info .contact-info p.icon-map15 a, .company-info .contact-info p.icon-map15 span")
     location_text = location.get_text(strip=True) if location else "N/A"
     phone = soup.select_one("a[href^='tel:']")
@@ -194,7 +203,6 @@ def get_existing_entries():
             existing_entries[(company_name, outlet_id)] += f", {services}"
         else:
             existing_entries[(company_name, outlet_id)] = services
-    
     return existing_entries
 
 existing_entries = get_existing_entries()
@@ -252,7 +260,7 @@ def scrape_subcategory(url):
             if cell:
                 sheet.update_cell(cell.row, 4, updated_services)
                 
-            # ✅ **Check if already in SKIPPED_SHEET before saving**
+            # ✅ Check if already in SKIPPED_SHEET before saving**
             skipped_data_entry = (
                 category_info["category_name"],
                 category_info["subcategory_name"],
