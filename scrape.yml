@@ -22,7 +22,7 @@ jobs:
 
       - name: Run Scraper
         env:
-          GOOGLE_SHEET_CREDENTIALS: ${{ secrets.GOOGLE_SHEET_CREDENTIALS }}
+          MYCOMMUNITYDIRECTORYCREDENTIAL: ${{ secrets.MYCOMMUNITYDIRECTORYCREDENTIAL }}
         run: |
-          echo "$GOOGLE_SHEET_CREDENTIALS" > mycommunitydirectorycredential.json
+          echo "$MYCOMMUNITYDIRECTORYCREDENTIAL" > mycommunitydirectorycredential.json
           python mycommunitydirectory.py
