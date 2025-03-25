@@ -105,7 +105,7 @@ def extract_category_info(soup):
 
 def extract_company_info(soup):
     # Extracts company details like name, NDIS provider status, and service area.
-    results = soup.select("#results > li")# Select all list items within the #results selector
+    results = soup.select("#results > li")  # Select all list items within the #results selector
     company_data = []
     
     for result in results:
