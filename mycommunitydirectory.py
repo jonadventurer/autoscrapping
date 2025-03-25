@@ -34,15 +34,15 @@ sheet = client.open(OUTPUT_NAME).worksheet(OUTPUTSHEET_NAME)  # Open the output 
 skipped_sheet = client.open(OUTPUT_NAME).worksheet(SKIPPED_SHEET_NAME)  # Open the skipped entries sheet for logging unsuccessful scraping attempts.
 
 def append_to_sheet(data):
-    # Appends a row of data to the Google Sheets output sheet.
+    """Appends a row of data to the Google Sheets output sheet."""
     sheet.append_row(data)
     
 def append_to_skipped_sheet(data):
-    # Appends a row of data to the skipped sheet for logging skipped entries.
+    """Appends a row of data to the skipped sheet for logging skipped entries."""
     skipped_sheet.append_row(data)
     
 def get_last_scraped_entry():
-    # Retrieve the last successfully scraped subcategory URL and company name from the output sheet.
+    """Retrieve the last successfully scraped subcategory URL and company name from the output sheet."""
     data = sheet.get_all_values()
     if len(data) > 1:
         last_row = data[-1]  # Get last row
@@ -52,7 +52,7 @@ def get_last_scraped_entry():
     return None, None
 
 def get_subcategory_urls():
-    # Fetches all subcategory URLs from the tracking sheet, filtering by the council name.
+    """Fetches all subcategory URLs from the tracking sheet, filtering by the council name."""
     sheet = client.open(SHEET_NAME).worksheet(TRACKING_SHEET)  # Open Google Sheet and select worksheet
     data = sheet.get_all_values()  # Fetch all data from the sheet
    
@@ -68,7 +68,7 @@ def get_subcategory_urls():
     return subcategory_urls
 
 def firecrawl_scrape(url, formats=["html"]):
-    # Scrapes a URL using FireCrawl with retry logic.
+    """Scrapes a URL using FireCrawl with retry logic."""
     max_retries = 3  # Maximum number of retry attempts
     for attempt in range(max_retries):
         start_time = time.time()  # Record the start time of the request
@@ -88,11 +88,11 @@ def firecrawl_scrape(url, formats=["html"]):
     return "N/A" # Return "N/A" if all retries fail
 
 def get_timestamp():
-    # Returns the current timestamp in YYYY-MM-DD HH:MM:SS format.
+    """Returns the current timestamp in YYYY-MM-DD HH:MM:SS format."""
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 def extract_category_info(soup):
-    # Extracts category and subcategory information from the page.
+    """Extracts category and subcategory information from the page."""
     categories = soup.select("span[itemprop='title']")  # Select all breadcrumb category elements
     if len(categories) >= 4:
         return {
@@ -104,7 +104,7 @@ def extract_category_info(soup):
     return {"category_name": "N/A", "subcategory_name": "N/A", "services": "N/A"}
 
 def extract_company_info(soup):
-    # Extracts company details like name, NDIS provider status, and service area.
+    """Extracts company details like name, NDIS provider status, and service area."""
     results = soup.select("#results > li")  # Select all list items within the #results selector
     company_data = []
     
@@ -121,7 +121,7 @@ def extract_company_info(soup):
     return company_data  # Return the list of extracted company details
 
 def extract_links(soup, subcategory_urls, max_wait=200, check_interval=60):
-    # Extracts business profile links from the subcategory page. With a retry of total 200 seconds, 60 seconds each try.
+    """Extracts business profile links from the subcategory page. With a retry of total 200 seconds, 60 seconds each try."""
     start_time = time.time()
     links = []
 
@@ -135,14 +135,14 @@ def extract_links(soup, subcategory_urls, max_wait=200, check_interval=60):
     return []  # Return empty list if no links found
 
 def extract_main_state(url):
-    # Extracts the main state from the target URL (e.g., Victoria from the given URL).
+    """Extracts the main state from the target URL (e.g., Victoria from the given URL)."""
     parts = url.split("/")
     if len(parts) > 3:  # Assuming state is always the second part after the domain
         return parts[3]  # Index 3 should be the state name
-    return "State not found"
+    return "N/A"
 
 def extract_details_from_link(url):
-    # Extracts company details from the business profile page.
+    """Extracts company details from the business profile page."""
     data = firecrawl_scrape(url, ["html"])  # Scrape the webpage using FireCrawl
     if not data or not data.get("success"):  # If scraping fails or response is invalid, return default "N/A" values
         return {
@@ -191,7 +191,7 @@ def extract_details_from_link(url):
     }
 
 def extract_suburb_state_postal(location_text):
-    # Ensure we have at least three words for suburb, state, and postal code
+    """Ensure we have at least three words for suburb, state, and postal code"""
     words = location_text.split()  # Split location text into words
     # Ensure we have at least 3 words for suburb, state, and postal code
     if len(words) >= 3:
@@ -203,12 +203,12 @@ def extract_suburb_state_postal(location_text):
     return {"suburb": "N/A", "state": "N/A", "postal_code": "N/A"}
 
 def extract_website_url(soup):
-    # Extracts the website URL from the given HTML using BeautifulSoup and combines it with BASE_URL.
+    """Extracts the website URL from the given HTML using BeautifulSoup and combines it with BASE_URL."""
     element = soup.select_one(".company-info .contact-info p.icon.icon-website a")
     return urljoin(BASE_URL, element['href']) if element else "N/A"
     
 def get_existing_entries():
-    # Fetch all existing company names and outlet IDs from the Google Sheet. Returns a dictionary with (company_name, outlet_id) as keys and their services as values.
+    """Fetch all existing company names and outlet IDs from the Google Sheet. Returns a dictionary with (company_name, outlet_id) as keys and their services as values."""
     data = sheet.get_all_values()
     existing_entries = {}
     
@@ -226,7 +226,7 @@ def get_existing_entries():
 existing_entries = get_existing_entries()
 
 def scrape_subcategory(url):
-    # Scrapes a subcategory page, extracts company details, and updates Google Sheets.
+    """Scrapes a subcategory page, extracts company details, and updates Google Sheets."""
     main_data = firecrawl_scrape(url, ["html"])  # Scrape the subcategory page using FireCrawl
     # Check if the scrape was successful, otherwise return
     if not main_data or not main_data.get("success") or "html" not in main_data["data"]:
