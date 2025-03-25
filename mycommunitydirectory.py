@@ -268,19 +268,18 @@ def scrape_subcategory(url):
         # Check for existing entry before saving
         existing_services = existing_companies.get((company["company_name"], details["outlet_id"]))
         new_services = category_info["services"]
-
+        # Check if any new services are missing from existing ones
         if existing_services:
             # Update existing entry with new services
             existing_services_list = existing_services.split(", ")
             new_services_list = new_services.split(", ")
             updated_services_list = list(set(existing_services_list + new_services_list))
             updated_services = ", ".join(updated_services_list)
-            
+            # Update the dictionary
             existing_companies[(company["company_name"], details["outlet_id"])] = updated_services
-
             # Find and update the existing entry in Google Sheets
             cell = sheet.find(company["company_name"], in_column=5)
-            if cell:
+            if cell and set(existing_services_list) != set(updated_services_list):
                 sheet.update_cell(cell.row, 4, updated_services)
                 
             # Check if already in SKIPPED_SHEET before saving
