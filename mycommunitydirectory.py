@@ -121,7 +121,7 @@ def extract_company_info(soup):
     return company_data  # Return the list of extracted company details
 
 def extract_links(soup, subcategory_urls, max_wait=200, check_interval=60):
-    # Extracts business profile links from the subcategory page.
+    # Extracts business profile links from the subcategory page. With a retry of total 200 seconds, 60 seconds each try.
     start_time = time.time()
     links = []
 
