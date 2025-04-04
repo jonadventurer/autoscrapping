@@ -3,7 +3,10 @@ There are 2 kinds of script:
 1. one is running the script on your local pc and using a VPN to bypass Cloudflare
 2. another is to run the script on GitHub Actions, where it uses Firecrawl to bypass Cloudfalre, but has limited data
 
-https://docs.google.com/document/d/16dmbfotVeatsGyYaHZo9vQrTSr4KZw3pD2BwKkKfoeE/edit?usp=sharing
+Google Doc: https://docs.google.com/document/d/16dmbfotVeatsGyYaHZo9vQrTSr4KZw3pD2BwKkKfoeE/edit?usp=sharing
+Firecrawl: https://www.firecrawl.dev/
+Google Sheet 1: https://docs.google.com/spreadsheets/d/1EuLTMAeEzVQVwNz3Mfpq3oX727-tqzBjHTr3FTY2HX4/edit?gid=1746674490#gid=1746674490
+Google Sheet 2: https://docs.google.com/spreadsheets/d/1GicOqorewhD5iC4Jpko4SB7kOBJuWHn8A5wJfVy1JME/edit?gid=1341403226#gid=1341403226
 
 If you are running the script on your local pc, you will need to download mycommunity.py and mycommunitydirectorycredential.json into your local pc and download a VPN to run along wih them
 If you are running the script automated on GitHub Actions, than just run the script by going into Actions tab, select Run mycommunitydirecty.py, and select run workflow
