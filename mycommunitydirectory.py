@@ -8,26 +8,35 @@ from datetime import datetime
 from oauth2client.service_account import ServiceAccountCredentials
 from urllib.parse import urljoin
 
-# Setting the council name
-COUNCIL_NAME = "Alpine Council"
-
-# FireCrawl API key and configuration, HEADERS contains authorization details and specifies the content type for API requests.
-API_KEY = "fc-6483a601863c44a9b03c0d9821dd8cc3"
+# ─── Firecrawl auth via ENV VAR ─────────────────────────────────────────────
 FIRECRAWL_URL = "https://api.firecrawl.dev/v1/scrape"
-HEADERS = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
+API_KEY      = os.getenv("FIRECRAWL_API_KEY")
+if not API_KEY:
+    raise RuntimeError("Missing FIRECRAWL_API_KEY env var")
+HEADERS = {
+    "Authorization": f"Bearer {API_KEY}",
+    "Content-Type":    "application/json",
+}
 
-# Google Sheets configuration
-SHEET_NAME = "VICTORIA Australian Council [MyCommunity] Scrapping - Tracking"  # SHEET_NAME refers to the main Google Sheet.
-TRACKING_SHEET = "Tracking Code (0 results)"  # TRACKING_SHEET is the specific worksheet that contains URLs to be scraped.
-OUTPUT_NAME = "My Community Scrapping (Victoria) state - By Council Tabs"  # OUTPUT_NAME is the Google Sheet where the scraped data will be stored.
-OUTPUTSHEET_NAME = f"{COUNCIL_NAME}"  # OUTPUTSHEET_NAME is dynamically set based on the council name to store data in the respective tab.
-SKIPPED_SHEET_NAME = f"Skipped Link ({COUNCIL_NAME})"  # SKIPPED_SHEET_NAME is used to store links that couldn't be scraped successfully.
-BASE_URL = "https://www.mycommunitydirectory.com.au"  # Base URL for constructing absolute links
+# ─── Google Sheets auth via ENV VAR holding full JSON ────────────────────────
+SCOPE      = [
+    "https://spreadsheets.google.com/feeds",
+    "https://www.googleapis.com/auth/drive",
+]
+creds_json = os.getenv("GOOGLE_CREDENTIALS")
+if not creds_json:
+    raise RuntimeError("Missing GOOGLE_CREDENTIALS env var")
+creds_dict = json.loads(creds_json)
+creds      = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, SCOPE)
+client     = gspread.authorize(creds)
 
-# Authenticate with Google Sheets
-scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]  # `scope` defines the necessary permissions for Google Sheets and Google Drive.
-creds = ServiceAccountCredentials.from_json_keyfile_name("mycommunitydirectorycredential.json", scope)  # `creds` loads the service account credentials from a JSON file.
-client = gspread.authorize(creds)  # `client` establishes the connection to Google Sheets using the credentials.
+COUNCIL_NAME       = "Alpine Council"
+SHEET_NAME         = "VICTORIA Australian Council [MyCommunity] Scrapping - Tracking"
+TRACKING_SHEET     = "Tracking Code (0 results)"
+OUTPUT_NAME        = "My Community Scrapping (Victoria) state - By Council Tabs"
+OUTPUTSHEET_NAME   = f"{COUNCIL_NAME}"
+SKIPPED_SHEET_NAME = f"Skipped Link ({COUNCIL_NAME})"
+BASE_URL           = "https://www.mycommunitydirectory.com.au"
 
 # Open the output sheet for storing scraped data.
 sheet = client.open(OUTPUT_NAME).worksheet(OUTPUTSHEET_NAME)  # Open the output sheet for storing scraped data.
