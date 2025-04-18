@@ -245,7 +245,7 @@ def scrape_subcategory(url):
         or not main_data.get("success")
         or "html" not in main_data.get("data", {})
     ):
-        return
+        return []
     
     wait_time = random.uniform(30, 50)  # Random wait between 30-50seconds
     time.sleep(wait_time)
