@@ -32,7 +32,7 @@ creds_dict = json.loads(creds_json)
 creds      = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, SCOPE)
 client     = gspread.authorize(creds)
 
-COUNCIL_NAME       = "Campaspe Council"
+COUNCIL_NAME       = "Cardinia Council"
 SHEET_NAME         = "VICTORIA Australian Council [MyCommunity] Scrapping - Tracking"
 TRACKING_SHEET     = "Tracking Code (0 results)"
 OUTPUT_NAME        = "My Community Scrapping (Victoria) state - By Council Tabs"
@@ -96,7 +96,7 @@ def firecrawl_scrape(url, formats=["html"]):
         # If unsuccessful, wait for a random time before retrying
         wait_time = random.uniform(10, 20)  # Random wait between 10-20 seconds
         time.sleep(wait_time)
-    return "N/A" # Return "N/A" if all retries fail
+    return None # Return None if all retries fail
 
 def get_timestamp():
     """Returns the current timestamp in YYYY-MM-DD HH:MM:SS format."""
@@ -240,7 +240,11 @@ def scrape_subcategory(url):
     """Scrapes a subcategory page, extracts company details, and updates Google Sheets."""
     main_data = firecrawl_scrape(url, ["html"])  # Scrape the subcategory page using FireCrawl
     # Check if the scrape was successful, otherwise return
-    if not main_data or not main_data.get("success") or "html" not in main_data["data"]:
+    if (
+        not isinstance(main_data, dict)
+        or not main_data.get("success")
+        or "html" not in main_data.get("data", {})
+    ):
         return
     
     wait_time = random.uniform(30, 50)  # Random wait between 30-50seconds
