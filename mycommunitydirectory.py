@@ -96,7 +96,7 @@ def firecrawl_scrape(url, formats=["html"]):
         # If unsuccessful, wait for a random time before retrying
         wait_time = random.uniform(10, 20)  # Random wait between 10-20 seconds
         time.sleep(wait_time)
-    return "N/A" # Return "N/A" if all retries fail
+    return None # Return "N/A" if all retries fail
 
 def get_timestamp():
     """Returns the current timestamp in YYYY-MM-DD HH:MM:SS format."""
@@ -237,15 +237,12 @@ def get_existing_entries():
 existing_entries = get_existing_entries()
 
 def scrape_subcategory(url):
-    """Scrapes a subcategory page, extracts company details, and updates Google Sheets."""
-    main_data_raw = firecrawl_scrape(url, ["html"])  # Scrape the subcategory page using FireCrawl
+    main_data = firecrawl_scrape(url, ["html"])  # returns dict on success, None on failure
 
-    # If it's a string, parse it to dict
-    main_data = json.loads(main_data_raw) if isinstance(main_data_raw, str) else main_data_raw
-
-    # Check if the scrape was successful
-    if not main_data or not main_data.get("success") or "html" not in main_data["data"]:
-        return
+    if not isinstance(main_data, dict) \
+       or not main_data.get("success") \
+       or "html" not in main_data.get("data", {}):
+         return []  # return empty list so callers can continue safely
     
     wait_time = random.uniform(30, 50)  # Random wait between 30-50seconds
     time.sleep(wait_time)
