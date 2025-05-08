@@ -238,8 +238,12 @@ existing_entries = get_existing_entries()
 
 def scrape_subcategory(url):
     """Scrapes a subcategory page, extracts company details, and updates Google Sheets."""
-    main_data = firecrawl_scrape(url, ["html"])  # Scrape the subcategory page using FireCrawl
-    # Check if the scrape was successful, otherwise return
+    main_data_raw = firecrawl_scrape(url, ["html"])  # Scrape the subcategory page using FireCrawl
+
+    # If it's a string, parse it to dict
+    main_data = json.loads(main_data_raw) if isinstance(main_data_raw, str) else main_data_raw
+
+    # Check if the scrape was successful
     if not main_data or not main_data.get("success") or "html" not in main_data["data"]:
         return
     
