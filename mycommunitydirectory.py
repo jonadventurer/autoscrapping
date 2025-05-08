@@ -32,7 +32,7 @@ creds_dict = json.loads(creds_json)
 creds      = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, SCOPE)
 client     = gspread.authorize(creds)
 
-COUNCIL_NAME       = "Cardinia Council"
+COUNCIL_NAME       = "Casey Council"
 SHEET_NAME         = "VICTORIA Australian Council [MyCommunity] Scrapping - Tracking"
 TRACKING_SHEET     = "Tracking Code (0 results)"
 OUTPUT_NAME        = "My Community Scrapping (Victoria) state - By Council Tabs"
