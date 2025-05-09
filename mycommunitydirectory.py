@@ -345,27 +345,12 @@ def scrape_subcategory(url):
 subcategory_urls = get_subcategory_urls()
 last_scraped_url, last_scraped_company = get_last_scraped_entry()
 
-# If there's a last scraped URL and company, resume from there
-if last_scraped_url and last_scraped_company and last_scraped_url in subcategory_urls:
-    last_index = subcategory_urls.index(last_scraped_url)
-    subcategory_urls = subcategory_urls[last_index:]  # Start from the last scraped URL
+# Build starting index (0 if no resume point, otherwise index of last URL)
+start = 0
+if last_scraped_url and last_scraped_url in subcategory_urls:
+    start = subcategory_urls.index(last_scraped_url)
 
-    # Ensure we only continue from the next company if multiple exist in the same subcategory
-    first_subcategory_companies = scrape_subcategory(last_scraped_url)  # Get all companies in last URL
-    skip_companies = True
-    for company in first_subcategory_companies:
-        if skip_companies:
-            if company["company_name"] == last_scraped_company:
-                skip_companies = False  # Stop skipping once we reach the last scraped company
-            continue
+# Now simply iterate from that index onward
+for url in subcategory_urls[start:]:
+    scrape_subcategory(url)
 
-        # Scrape remaining companies in the same subcategory
-        scrape_subcategory(last_scraped_url)
-
-    # Continue with the rest of the URLs
-    for url in subcategory_urls[1:]:  # Skip the already processed subcategory
-        scrape_subcategory(url)
-else:
-    # Start from the beginning if no last entry is found
-    for url in subcategory_urls:
-        scrape_subcategory(url)
