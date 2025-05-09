@@ -1,4 +1,6 @@
 import re
+import os
+import json
 import requests
 import time
 import random
@@ -8,26 +10,35 @@ from datetime import datetime
 from oauth2client.service_account import ServiceAccountCredentials
 from urllib.parse import urljoin
 
-# Setting the council name
-COUNCIL_NAME = "Alpine Council"
-
-# FireCrawl API key and configuration, HEADERS contains authorization details and specifies the content type for API requests.
-API_KEY = "fc-6483a601863c44a9b03c0d9821dd8cc3"
+# ─── Firecrawl auth via ENV VAR ─────────────────────────────────────────────
 FIRECRAWL_URL = "https://api.firecrawl.dev/v1/scrape"
-HEADERS = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
+API_KEY      = os.getenv("FIRECRAWL_API_KEY")
+if not API_KEY:
+    raise RuntimeError("Missing FIRECRAWL_API_KEY env var")
+HEADERS = {
+    "Authorization": f"Bearer {API_KEY}",
+    "Content-Type":    "application/json",
+}
 
-# Google Sheets configuration
-SHEET_NAME = "VICTORIA Australian Council [MyCommunity] Scrapping - Tracking"  # SHEET_NAME refers to the main Google Sheet.
-TRACKING_SHEET = "Tracking Code (0 results)"  # TRACKING_SHEET is the specific worksheet that contains URLs to be scraped.
-OUTPUT_NAME = "My Community Scrapping (Victoria) state - By Council Tabs"  # OUTPUT_NAME is the Google Sheet where the scraped data will be stored.
-OUTPUTSHEET_NAME = f"{COUNCIL_NAME}"  # OUTPUTSHEET_NAME is dynamically set based on the council name to store data in the respective tab.
-SKIPPED_SHEET_NAME = f"Skipped Link ({COUNCIL_NAME})"  # SKIPPED_SHEET_NAME is used to store links that couldn't be scraped successfully.
-BASE_URL = "https://www.mycommunitydirectory.com.au"  # Base URL for constructing absolute links
+# ─── Google Sheets auth via ENV VAR holding full JSON ────────────────────────
+SCOPE      = [
+    "https://spreadsheets.google.com/feeds",
+    "https://www.googleapis.com/auth/drive",
+]
+creds_json = os.getenv("GOOGLE_CREDENTIALS")
+if not creds_json:
+    raise RuntimeError("Missing GOOGLE_CREDENTIALS env var")
+creds_dict = json.loads(creds_json)
+creds      = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, SCOPE)
+client     = gspread.authorize(creds)
 
-# Authenticate with Google Sheets
-scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]  # `scope` defines the necessary permissions for Google Sheets and Google Drive.
-creds = ServiceAccountCredentials.from_json_keyfile_name("mycommunitydirectorycredential.json", scope)  # `creds` loads the service account credentials from a JSON file.
-client = gspread.authorize(creds)  # `client` establishes the connection to Google Sheets using the credentials.
+COUNCIL_NAME       = "Gabo Island Council"
+SHEET_NAME         = "VICTORIA Australian Council [MyCommunity] Scrapping - Tracking"
+TRACKING_SHEET     = "Tracking Code (0 results)"
+OUTPUT_NAME        = "My Community Scrapping (Victoria) state - By Council Tabs"
+OUTPUTSHEET_NAME   = f"{COUNCIL_NAME}"
+SKIPPED_SHEET_NAME = f"Skipped Link ({COUNCIL_NAME})"
+BASE_URL           = "https://www.mycommunitydirectory.com.au"
 
 # Open the output sheet for storing scraped data.
 sheet = client.open(OUTPUT_NAME).worksheet(OUTPUTSHEET_NAME)  # Open the output sheet for storing scraped data.
@@ -85,7 +96,7 @@ def firecrawl_scrape(url, formats=["html"]):
         # If unsuccessful, wait for a random time before retrying
         wait_time = random.uniform(10, 20)  # Random wait between 10-20 seconds
         time.sleep(wait_time)
-    return "N/A" # Return "N/A" if all retries fail
+    return None # Return "N/A" if all retries fail
 
 def get_timestamp():
     """Returns the current timestamp in YYYY-MM-DD HH:MM:SS format."""
@@ -226,20 +237,24 @@ def get_existing_entries():
 existing_entries = get_existing_entries()
 
 def scrape_subcategory(url):
-    """Scrapes a subcategory page, extracts company details, and updates Google Sheets."""
-    main_data = firecrawl_scrape(url, ["html"])  # Scrape the subcategory page using FireCrawl
-    # Check if the scrape was successful, otherwise return
-    if not main_data or not main_data.get("success") or "html" not in main_data["data"]:
-        return
+    print(f"[DEBUG] scrape_subcategory() → {url}")
+    main_data = firecrawl_scrape(url, ["html"])  # returns dict on success, None on failure
+
+    if not isinstance(main_data, dict) \
+       or not main_data.get("success") \
+       or "html" not in main_data.get("data", {}):
+         return []  # return empty list so callers can continue safely
     
     wait_time = random.uniform(30, 50)  # Random wait between 30-50seconds
     time.sleep(wait_time)
     
     soup = BeautifulSoup(main_data["data"].get("html", ""), "html.parser")  # Parse the scraped HTML content
     # Extract data from the page
-    links = extract_links(soup, url)  # Extracts service links from the page
+    links = extract_links(soup, url)
+    print(f"[DEBUG]   Found {len(links)} detail-page links")  # Extracts service links from the page
     category_info = extract_category_info(soup)  # Extracts category metadata
-    companies = extract_company_info(soup)  # Extracts company information
+    companies = extract_company_info(soup)
+    print(f"[DEBUG]   Parsed {len(companies)} companies") # Extracts company information
     main_state = extract_main_state(url)  # Extracts state information from URL
     
     # Fetch existing data once to optimize performance
@@ -300,6 +315,7 @@ def scrape_subcategory(url):
                     details["outlet_id"],
                     details["location"]
                 ]
+                print(f"[DEBUG]   ⚠️ Logging SKIPPED for {company['company_name']} (outlet {details['outlet_id']})")
                 append_to_skipped_sheet(skipped_data)  # Save skipped entry
             else:
                 continue  # Skip saving duplicate data
@@ -326,34 +342,29 @@ def scrape_subcategory(url):
                 details["phone"],
                 url
             ]
+            print(f"[DEBUG]   ▶️ Appending NEW row for {company['company_name']} (outlet {details['outlet_id']})")
             append_to_sheet(row_data)  # Save new entry
     return companies  # Return extracted company data
 
 # Fetch all subcategory URLs
-subcategory_urls = get_subcategory_urls()
-last_scraped_url, last_scraped_company = get_last_scraped_entry()
+subcategory_urls = get_subcategory_urls()  # correct function name, no args
+print(f"[DEBUG] Subcategories to process ({len(subcategory_urls)}): {subcategory_urls}")
+last_scraped_url, last_scraped_company = get_last_scraped_entry()  # correct function name
+print(f"[DEBUG] Resuming after URL: {last_scraped_url!r}, company: {last_scraped_company!r}")
 
-# If there's a last scraped URL and company, resume from there
-if last_scraped_url and last_scraped_company and last_scraped_url in subcategory_urls:
-    last_index = subcategory_urls.index(last_scraped_url)
-    subcategory_urls = subcategory_urls[last_index:]  # Start from the last scraped URL
 
-    # Ensure we only continue from the next company if multiple exist in the same subcategory
-    first_subcategory_companies = scrape_subcategory(last_scraped_url)  # Get all companies in last URL
-    skip_companies = True
-    for company in first_subcategory_companies:
-        if skip_companies:
-            if company["company_name"] == last_scraped_company:
-                skip_companies = False  # Stop skipping once we reach the last scraped company
-            continue
 
-        # Scrape remaining companies in the same subcategory
-        scrape_subcategory(last_scraped_url)
+# Figure out where to start: after the last scraped URL, or at the very beginning
+start = 0
+if last_scraped_url and last_scraped_url in subcategory_urls:
+    idx = subcategory_urls.index(last_scraped_url)
+    start = idx + 1  # resume at the next URL, not the same one
 
-    # Continue with the rest of the URLs
-    for url in subcategory_urls[1:]:  # Skip the already processed subcategory
-        scrape_subcategory(url)
+# If start is beyond the list, nothing to do
+if start >= len(subcategory_urls):
+    print("✅ All subcategories already scraped.")
 else:
-    # Start from the beginning if no last entry is found
-    for url in subcategory_urls:
+    print(f"🔄 Resuming from index {start}: {subcategory_urls[start:]}")
+    for url in subcategory_urls[start:]:
         scrape_subcategory(url)
+
