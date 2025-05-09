@@ -345,12 +345,17 @@ def scrape_subcategory(url):
 subcategory_urls = get_subcategory_urls()
 last_scraped_url, last_scraped_company = get_last_scraped_entry()
 
-# Build starting index (0 if no resume point, otherwise index of last URL)
+# Figure out where to start: after the last scraped URL, or at the very beginning
 start = 0
 if last_scraped_url and last_scraped_url in subcategory_urls:
-    start = subcategory_urls.index(last_scraped_url)
+    idx = subcategory_urls.index(last_scraped_url)
+    start = idx + 1  # resume at the next URL, not the same one
 
-# Now simply iterate from that index onward
-for url in subcategory_urls[start:]:
-    scrape_subcategory(url)
+# If start is beyond the list, nothing to do
+if start >= len(subcategory_urls):
+    print("✅ All subcategories already scraped.")
+else:
+    print(f"🔄 Resuming from index {start}: {subcategory_urls[start:]}")
+    for url in subcategory_urls[start:]:
+        scrape_subcategory(url)
 
