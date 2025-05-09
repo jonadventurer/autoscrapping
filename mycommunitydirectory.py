@@ -237,6 +237,7 @@ def get_existing_entries():
 existing_entries = get_existing_entries()
 
 def scrape_subcategory(url):
+    print(f"[DEBUG] scrape_subcategory() → {url}")
     main_data = firecrawl_scrape(url, ["html"])  # returns dict on success, None on failure
 
     if not isinstance(main_data, dict) \
@@ -249,9 +250,11 @@ def scrape_subcategory(url):
     
     soup = BeautifulSoup(main_data["data"].get("html", ""), "html.parser")  # Parse the scraped HTML content
     # Extract data from the page
-    links = extract_links(soup, url)  # Extracts service links from the page
+    links = extract_links(soup, url)
+    print(f"[DEBUG]   Found {len(links)} detail-page links")  # Extracts service links from the page
     category_info = extract_category_info(soup)  # Extracts category metadata
-    companies = extract_company_info(soup)  # Extracts company information
+    companies = extract_company_info(soup)
+    print(f"[DEBUG]   Parsed {len(companies)} companies") # Extracts company information
     main_state = extract_main_state(url)  # Extracts state information from URL
     
     # Fetch existing data once to optimize performance
@@ -312,6 +315,7 @@ def scrape_subcategory(url):
                     details["outlet_id"],
                     details["location"]
                 ]
+                print(f"[DEBUG]   ⚠️ Logging SKIPPED for {company['company_name']} (outlet {details['outlet_id']})")
                 append_to_skipped_sheet(skipped_data)  # Save skipped entry
             else:
                 continue  # Skip saving duplicate data
@@ -338,12 +342,16 @@ def scrape_subcategory(url):
                 details["phone"],
                 url
             ]
+            print(f"[DEBUG]   ▶️ Appending NEW row for {company['company_name']} (outlet {details['outlet_id']})")
             append_to_sheet(row_data)  # Save new entry
     return companies  # Return extracted company data
 
 # Fetch all subcategory URLs
-subcategory_urls = get_subcategory_urls()
-last_scraped_url, last_scraped_company = get_last_scraped_entry()
+subcategory_urls = get_subcategory_links(base_url)
+print(f"[DEBUG] Subcategories to process ({len(subcategory_urls)}): {subcategory_urls}")
+last_scraped_url, last_scraped_company = read_last_scraped_position()
+print(f"[DEBUG] Resuming after URL: {last_scraped_url!r}, company: {last_scraped_company!r}")
+
 
 # Figure out where to start: after the last scraped URL, or at the very beginning
 start = 0
