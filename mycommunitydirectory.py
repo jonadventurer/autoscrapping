@@ -347,10 +347,11 @@ def scrape_subcategory(url):
     return companies  # Return extracted company data
 
 # Fetch all subcategory URLs
-subcategory_urls = get_subcategory_links(base_url)
+subcategory_urls = get_subcategory_urls()  # correct function name, no args
 print(f"[DEBUG] Subcategories to process ({len(subcategory_urls)}): {subcategory_urls}")
-last_scraped_url, last_scraped_company = read_last_scraped_position()
+last_scraped_url, last_scraped_company = get_last_scraped_entry()  # correct function name
 print(f"[DEBUG] Resuming after URL: {last_scraped_url!r}, company: {last_scraped_company!r}")
+
 
 
 # Figure out where to start: after the last scraped URL, or at the very beginning
